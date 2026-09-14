@@ -350,20 +350,74 @@ private fun AddTeamDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> 
 
 @Composable
 fun StandingsScreen(standings: List<TeamState>, onBack: () -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Таблица") },
+    Scaffold(topBar = { TopAppBar(title = { Text("Итоговая таблица") },
         navigationIcon = { TextButton(onClick = onBack) { Text("Назад") } }) }) { pad ->
-        LazyColumn(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
-            items(standings) { st ->
-                Row(Modifier.fillMaxWidth().padding(6.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(14.dp).background(teamColor(st.team.colorHex)))
-                    Spacer(Modifier.width(6.dp))
-                    Text(st.team.name, Modifier.weight(1f))
-                    Text("И:${st.games}  О:${st.points}  Г:${st.goalsFor}-${st.goalsAgainst}",
-                        fontWeight = FontWeight.Bold)
-                }
-                Divider()
+        Column(Modifier.fillMaxSize().padding(pad)) {
+
+            // Шапка таблицы
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("#", Modifier.width(24.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Команда", Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("И", Modifier.width(22.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("В", Modifier.width(22.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Н", Modifier.width(22.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("П", Modifier.width(22.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("ГЗ", Modifier.width(26.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("ГП", Modifier.width(26.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("РГ", Modifier.width(30.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("О", Modifier.width(26.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
+            Divider()
+
+            LazyColumn(Modifier.fillMaxSize()) {
+                itemsIndexed(standings) { idx, st ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("${idx + 1}", Modifier.width(24.dp), fontWeight = FontWeight.Bold)
+
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(14.dp).background(teamColor(st.team.colorHex)))
+                            Spacer(Modifier.width(6.dp))
+                            Text(st.team.name, fontWeight = FontWeight.Medium)
+                        }
+
+                        Text("${st.games}", Modifier.width(22.dp))
+                        Text("${st.wins}", Modifier.width(22.dp))
+                        Text("${st.draws}", Modifier.width(22.dp))
+                        Text("${st.losses}", Modifier.width(22.dp))
+                        Text("${st.goalsFor}", Modifier.width(26.dp))
+                        Text("${st.goalsAgainst}", Modifier.width(26.dp))
+
+                        val rg = st.goalDiff
+                        Text(
+                            if (rg > 0) "+$rg" else "$rg",
+                            Modifier.width(30.dp),
+                            color = when {
+                                rg > 0 -> Color(0xFF2E7D32)
+                                rg < 0 -> Color(0xFFC62828)
+                                else -> MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+
+                        Text("${st.points}", Modifier.width(26.dp),
+                            fontWeight = FontWeight.Bold)
+                    }
+                    Divider()
+                }
+            }
+
+            // Пояснение
+            Text(
+                "В — выигрыши · Н — ничьи · П — поражения\nГЗ — забито · ГП — пропущено · РГ — разница · О — очки",
+                Modifier.fillMaxWidth().padding(16.dp),
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.outline
+            )
         }
     }
 }

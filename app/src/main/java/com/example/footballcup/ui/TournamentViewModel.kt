@@ -44,6 +44,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
     private var engine: TournamentEngine? = null
     private var matchCounter = 0L
     private var allMatches = mutableListOf<Match>()
+    private var allGoals = mutableListOf<Goal>()
     private var currentMatch: Match? = null
 
     init {

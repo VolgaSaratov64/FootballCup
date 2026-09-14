@@ -89,6 +89,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         engine = TournamentEngine(_teams.value)
         engine!!.startFirstMatch(aId, bId)
         allMatches = mutableListOf()
+        allGoals = mutableListOf()
         matchCounter = 0
         createNextMatch()
     }
@@ -137,6 +138,18 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
 
         val minute = ((7 * 60 - s.secondsLeft) / 60).coerceAtLeast(0)
         val scorerName = _players.value.values.flatten().firstOrNull { it.id == scorerId }?.name ?: "?"
+
+        val newGoal = Goal(
+            id = System.currentTimeMillis(),
+            matchId = match.id,
+            scorerId = scorerId,
+            scorerTeamId = scorerTeamId,
+            scoringTeamId = scoringTeamId,
+            isOwnGoal = isOwnGoal,
+            minute = minute
+        )
+        allGoals.add(newGoal)
+
         val newA = if (scoringTeamId == match.teamAId) s.scoreA + 1 else s.scoreA
         val newB = if (scoringTeamId == match.teamBId) s.scoreB + 1 else s.scoreB
 
@@ -152,6 +165,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         val s = _matchState.value
         if (s.goals.isEmpty() || s.finished) return
         val last = s.goals.last()
+        allGoals.removeLastOrNull()
         val newA = if (last.scoringTeamId == s.teamA?.id) s.scoreA - 1 else s.scoreA
         val newB = if (last.scoringTeamId == s.teamB?.id) s.scoreB - 1 else s.scoreB
         _matchState.value = s.copy(scoreA = newA, scoreB = newB, goals = s.goals.dropLast(1))
@@ -184,7 +198,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         _historyMatches.value = allMatches.toList()
     }
 
-        fun standings(): List<TeamState> = engine?.standings() ?: emptyList()
+    fun standings(): List<TeamState> = engine?.standings() ?: emptyList()
 
     /** Список бомбардиров: имя, команда, количество голов (без автоголов) */
     fun topScorers(): List<Triple<String, String, Int>> {

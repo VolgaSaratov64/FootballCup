@@ -183,5 +183,33 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         _historyMatches.value = allMatches.toList()
     }
 
-    fun standings(): List<TeamState> = engine?.standings() ?: emptyList()
+        fun standings(): List<TeamState> = engine?.standings() ?: emptyList()
+
+    /** Список бомбардиров: имя, команда, количество голов (без автоголов) */
+    fun topScorers(): List<Triple<String, String, Int>> {
+        val playersById = _players.value.values.flatten().associateBy { it.id }
+        val teamsById = _teams.value.associateBy { it.id }
+        return allGoals
+            .filter { !it.isOwnGoal }
+            .groupBy { it.scorerId }
+            .mapNotNull { (scorerId, goals) ->
+                val p = playersById[scorerId] ?: return@mapNotNull null
+                val teamName = teamsById[p.teamId]?.name ?: "?"
+                Triple(p.name, teamName, goals.size)
+            }
+            .sortedByDescending { it.third }
+    }
+
+    /** Список автоголов: имя игрока, количество */
+    fun ownGoalsList(): List<Pair<String, Int>> {
+        val playersById = _players.value.values.flatten().associateBy { it.id }
+        return allGoals
+            .filter { it.isOwnGoal }
+            .groupBy { it.scorerId }
+            .mapNotNull { (scorerId, goals) ->
+                val p = playersById[scorerId] ?: return@mapNotNull null
+                p.name to goals.size
+            }
+            .sortedByDescending { it.second }
+    }
 }

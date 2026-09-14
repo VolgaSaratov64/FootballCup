@@ -110,6 +110,8 @@ fun AppRoot(vm: TournamentViewModel = viewModel()) {
         Screen.History -> HistoryScreen(
             matches = matches,
             teams = teams,
+            topScorers = vm.topScorers(),
+            ownGoals = vm.ownGoalsList(),
             onBack = { screen = Screen.Home }
         )
     }

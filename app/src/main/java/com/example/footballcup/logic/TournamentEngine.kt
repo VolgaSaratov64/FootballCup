@@ -40,17 +40,29 @@ class TournamentEngine(private val teams: List<Team>) {
     var currentPair: Pair<Long, Long>? = null
         private set
 
+    /** Сколько матчей уже завершено в этом турнире */
+    private var matchesPlayed = 0
+
     fun getState(teamId: Long): TeamState = states.getValue(teamId)
     fun allStates(): List<TeamState> = states.values.toList()
 
     fun startFirstMatch(a: Long, b: Long) { currentPair = a to b }
 
+    /**
+     * Применить результат матча.
+     * Возвращает true, если нужно спросить пользователя "кто садится"
+     * (только при ничьей в самой первой игре турнира).
+     */
     fun applyOutcome(outcome: MatchOutcome, manualLoserId: Long? = null): Boolean {
+        // 1. Обновляем статистику
         val a = states.getValue(outcome.teamAId)
         val b = states.getValue(outcome.teamBId)
-        a.gamesInRow++; b.gamesInRow++
-        a.goalsFor += outcome.scoreA; a.goalsAgainst += outcome.scoreB
-        b.goalsFor += outcome.scoreB; b.goalsAgainst += outcome.scoreA
+        a.gamesInRow++
+        b.gamesInRow++
+        a.goalsFor += outcome.scoreA
+        a.goalsAgainst += outcome.scoreB
+        b.goalsFor += outcome.scoreB
+        b.goalsAgainst += outcome.scoreA
 
         when {
             outcome.scoreA > outcome.scoreB -> { a.points += 3; a.wins++; b.losses++ }
@@ -58,16 +70,52 @@ class TournamentEngine(private val teams: List<Team>) {
             else -> { a.points += 1; b.points += 1; a.draws++; b.draws++ }
         }
 
-        if (outcome.winnerId == null && manualLoserId == null) return true
+        val isFirstMatch = matchesPlayed == 0
+        matchesPlayed++
 
-        val sittingId = if (outcome.winnerId == null) manualLoserId!!
-                       else outcome.loserId!!
-        val stayingId = if (sittingId == outcome.teamAId) outcome.teamBId
-                        else outcome.teamAId
-        rotate(sittingId, stayingId)
+        // 2. Определяем, кто садится
+        if (outcome.winnerId == null) {
+            // Ничья
+            if (isFirstMatch) {
+                // Первый матч турнира — спрашиваем пользователя
+                if (manualLoserId == null) return true
+                val staying = if (manualLoserId == outcome.teamAId) outcome.teamBId
+                              else outcome.teamAId
+                rotate(manualLoserId, staying)
+            } else {
+                // Не первый матч — решаем автоматически
+                val autoSit = determineAutoSitter(outcome.teamAId, outcome.teamBId)
+                val staying = if (autoSit == outcome.teamAId) outcome.teamBId
+                              else outcome.teamAId
+                rotate(autoSit, staying)
+            }
+        } else {
+            // Есть победитель — проигравший садится
+            rotate(outcome.loserId!!, outcome.winnerId!!)
+        }
         return false
     }
 
+    /**
+     * Кто садится при ничьей (не первый матч).
+     * Правило: кто сыграл больше матчей подряд — тот и садится.
+     * Если счётчик равен — садится команда A (произвольный выбор).
+     */
+    private fun determineAutoSitter(teamAId: Long, teamBId: Long): Long {
+        val aRow = states.getValue(teamAId).gamesInRow
+        val bRow = states.getValue(teamBId).gamesInRow
+        return when {
+            aRow > bRow -> teamAId
+            bRow > aRow -> teamBId
+            else -> teamAId // равные — по договорённости садится A
+        }
+    }
+
+    /**
+     * Сидящий уходит отдыхать (gamesInRow = 0).
+     * Оставшийся проверяется: если у него уже 2 игры подряд — он тоже садится,
+     * а на поле выходит третья команда.
+     */
     private fun rotate(sittingId: Long, stayingId: Long) {
         states[sittingId]!!.gamesInRow = 0
         val staying = states[stayingId]!!
